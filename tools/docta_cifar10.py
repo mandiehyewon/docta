@@ -3,6 +3,8 @@ import os
 o_path = os.getcwd()
 sys.path.append(o_path) # set path so that modules from other foloders can be loaded
 
+from sklearn.metrics import f1_score
+
 import torch
 from docta.utils.config import Config
 from docta.datasets import Cifar10_noisy
@@ -63,3 +65,12 @@ cured_labels[label_curation[sel, 0].astype(int)] = label_curation[sel, 1].astype
 save_path = cfg.save_path + f'cured_labels_{cfg.dataset_type}.pt'
 torch.save(cured_labels, save_path)
 print(f'Saved cured labels to {save_path}')
+
+y_pred = np.array(report.detection['y_pred'])
+y_true = dataset_raw.label[:, 1] != dataset_raw.targets
+f1 = f1_score(y_true, y_pred, average='binary') #, pos_label=0)
+np.save(cfg.save_path + 'y_pred.npy', y_pred)
+np.save(cfg.save_path + 'y_true.npy', y_true)
+# auc = roc_auc_score(y_true, pred_proba) # noisy_avg, predicted probability
+# print(f'f1 score: {f1}: auc: {auc}')
+print(f'f1 score: {f1}')

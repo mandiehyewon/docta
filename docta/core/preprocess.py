@@ -22,7 +22,13 @@ def save_extracted_dataset(cfg, dataset_embedding, dataset_label, dataset_idx, s
     dataset_label = np.concatenate(dataset_label)
     dataset_label = dataset_label[:, cfg.train_label_sel] if len(dataset_label.shape) > 1 else dataset_label
 
-    dataset = CustomizedDataset(feature=np.concatenate(dataset_embedding), label=dataset_label, index=np.concatenate(dataset_idx))
+    if len(dataset_label.shape) > 1:
+        true_label = dataset_label[:, 0]
+    else:
+        true_label = None
+
+    dataset = CustomizedDataset(feature=np.concatenate(dataset_embedding), label=dataset_label, true_label=true_label, index=np.concatenate(dataset_idx))
+
     os.makedirs(cfg.save_path, exist_ok=True)
     save_path = cfg.save_path + f'embedded_{cfg.dataset_type}_{save_cnt}.pt'
     torch.save(dataset, save_path)
