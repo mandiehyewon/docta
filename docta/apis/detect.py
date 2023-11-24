@@ -71,7 +71,6 @@ class DetectLabel(Diagnose):
         detection = dict(
             label_error = [[i, noisy_avg[i]] for i in idx],
             y_pred = sel_noisy_summary,
-            y_true = self.dataset.true_label,
         )
 
         suggest_matrix[range(len(suggest_matrix)), np.array(self.dataset.label)] = -1

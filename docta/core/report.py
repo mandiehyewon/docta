@@ -14,7 +14,6 @@ class Report:
             label_error = None, # (index, confidence)
             coexistence = None, # (index, confidence)
             rare_example = None, # (index, confidence)
-            y_true = None, # true label (len(dataset)) size
             y_pred = None, # predicted label (len(dataset)) size        
         )
         self.curation = kwargs['curation'] if 'curation' in kwargs else dict(

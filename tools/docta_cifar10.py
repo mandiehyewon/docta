@@ -29,7 +29,7 @@ print(pre_processor.save_ckpt_idx)
 
 
 data_path = lambda x: cfg.save_path + f'embedded_{cfg.dataset_type}_{x}.pt'
-dataset, _ = load_embedding(pre_processor.save_ckpt_idx, data_path, duplicate=True)
+dataset, _ = load_embedding(pre_processor.save_ckpt_idx, data_path, duplicate=False)
 
 # initialize report
 report = Report()
@@ -71,6 +71,4 @@ y_true = dataset_raw.label[:, 1] != dataset_raw.targets
 f1 = f1_score(y_true, y_pred, average='binary') #, pos_label=0)
 np.save(cfg.save_path + 'y_pred.npy', y_pred)
 np.save(cfg.save_path + 'y_true.npy', y_true)
-# auc = roc_auc_score(y_true, pred_proba) # noisy_avg, predicted probability
-# print(f'f1 score: {f1}: auc: {auc}')
 print(f'f1 score: {f1}')
