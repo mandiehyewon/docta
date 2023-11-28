@@ -45,16 +45,20 @@ def count_knn_distribution(cfg, dataset, sample, k=10, norm='l2'):
     return knn_labels_prob
 
 
-def get_score(knn_labels_cnt, label):
+def get_score(knn_labels_cnt, label, cfg):
     """ Get the corruption score. Lower score indicates the sample is more likely to be corrupted.
     Args:
         knn_labels_cnt: KNN labels
         label: corrupted labels
     """
-    score = F.nll_loss(torch.log(knn_labels_cnt + 1e-8),
-                      label, reduction='none')
-    return score
+    if cfg.nll:
+        score = F.nll_loss(torch.log(knn_labels_cnt + 1e-8),
+                        label, reduction='none')
+    else:
+        score = F.nll_loss(knn_labels_cnt,
+                        label, reduction='none')
 
+    return score
 
 def simi_feat_batch(cfg, dataset):
     """ Construct the set of data that are likely to be corrupted.
@@ -72,7 +76,7 @@ def simi_feat_batch(cfg, dataset):
     knn_labels_cnt = count_knn_distribution(
         cfg, dataset=dataset, sample=idx, k=cfg.detect_cfg.k, norm='l2')
 
-    score = get_score(knn_labels_cnt, torch.tensor(dataset.label[idx]))
+    score = get_score(knn_labels_cnt, torch.tensor(dataset.label[idx]), cfg)
     score_np = score.cpu().numpy()
     sel_idx = dataset.index[idx]  # raw index
 

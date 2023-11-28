@@ -67,8 +67,10 @@ torch.save(cured_labels, save_path)
 print(f'Saved cured labels to {save_path}')
 
 y_pred = np.array(report.detection['y_pred'])
-y_true = dataset_raw.label[:, 1] != dataset_raw.targets
-f1 = f1_score(y_true, y_pred, average='binary') #, pos_label=0)
+y_true = dataset_raw.label[:, 0] != dataset_raw.label[:, 1]
+f1 = f1_score(y_true, y_pred)
 np.save(cfg.save_path + 'y_pred.npy', y_pred)
 np.save(cfg.save_path + 'y_true.npy', y_true)
+
+import ipdb; ipdb.set_trace()
 print(f'f1 score: {f1}')

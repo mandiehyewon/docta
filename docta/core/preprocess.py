@@ -98,7 +98,15 @@ class Preprocess:
         self.dataset = dataset
         self.test_dataset = test_dataset
     
-    def get_encoder(self):
+    def get_encoder(self, model_embedding=None, preprocess=None):
+        if model_embedding is not None:
+            model_embedding.to(self.cfg.device)
+            preprocess = torchvision.transforms.Compose([
+            torchvision.transforms.ToPILImage(mode=None),
+            preprocess
+            ]) # from array or tensor to PIL Image, for resize
+            return model_embedding.encode_image, preprocess
+
         if 'CLIP' in self.cfg.embedding_model:
             model_embedding, _, preprocess = open_clip.create_model_and_transforms(self.cfg.embedding_model)
             model_embedding.to(self.cfg.device)
@@ -114,6 +122,7 @@ class Preprocess:
                 return model_embedding.encode_text, tokenizer
             else:
                 raise NameError(f'Modality {self.cfg.modality} has not been supported yet')
+            
         elif 'sentence-transformers' in self.cfg.embedding_model:
             # model = SentenceTransformer(self.cfg.embedding_model)
             
@@ -124,13 +133,12 @@ class Preprocess:
 
             return (model, token_st), None
 
-
         else:
             raise NameError('Undefined pre-trained models {self.cfg.embedding_model}')
-
-
-    def encode_feature(self):
-        encoder, preprocess = self.get_encoder()
+        
+    def encode_feature(self, model_embedding=None, preprocess=None):
+        encoder, preprocess = self.get_encoder(model_embedding, preprocess)
+             
         dataset_list = []
         dataset_list += [CustomizedDataset(feature=self.dataset.feature, label=self.dataset.label, preprocess=preprocess)]
         if self.test_dataset is not None:
