@@ -1,9 +1,22 @@
-from torchvision.datasets import CIFAR10
 from PIL import Image
-import torchvision.transforms as transforms
 import numpy as np
+
+import torch
+from torchvision.datasets import CIFAR10
+import torchvision.transforms as transforms
+
 from .data_utils import load_label, noisify_general, get_T_true_from_data
 
+
+class CIFAR_Sampler(Sampler):
+    def __init__(self, idxs):
+        self.idxs = idxs
+
+    def __iter__(self):
+        return (self.indices[i] for i in torch.nonzero(self.mask))
+
+    def __len__(self):
+        return len(self.mask)
 
 
 class Cifar10_noisy(CIFAR10):

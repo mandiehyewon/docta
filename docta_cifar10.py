@@ -7,7 +7,7 @@ from sklearn.model_selection import train_test_split
 import torch
 
 from docta.utils.config import Config
-from docta.datasets import Cifar10_noisy
+from docta.datasets import Cifar10_noisy, CIFAR_Sampler
 from docta.core.preprocess import Preprocess
 from docta.datasets.data_utils import load_embedding
 from docta.apis import DetectLabel
@@ -22,6 +22,7 @@ parser = argparse.ArgumentParser(description='PyTorch CIFAR10 Training')
 parser.add_argument('--model', default='VITB', type=str, help='embedding model')
 parser.add_argument('--method', default='Rank', type=str, help='SimiFeat method', choices=['Rank', 'Vote'])
 parser.add_argument('--nll', action="store_true", help='use nll loss') # default is cosine similarity
+parser.add_argument('--duplicate', action="store_true", default=False, help='use duplicate')
 args = parser.parse_args()
 
 print("Step 1: Load Dataset")
@@ -35,7 +36,9 @@ print('Using data CIFAR10 and config: '+config_pth)
 # VITH_Rank: F1 0.7959854232630384, 0.79648871372268, 0.7937296197684506, 0.7958775205377148, 0.7987601335240821
 # VITH_Vote: F1 0.9215372087525283, 0.9207159778889181, 0.9214293232291338, 0.9217418744083307, 0.9199052132701421
 # VITB_Rank F1 0.7616164673830785, 0.7622826679590476, 0.7596296858400364, 0.762345959366579, 0.7621413639531008
+# 0.859402908905333, 0.8580739983385519, 0.8561560601215221
 # VITB_Vote F1 0.8858046472725372, 0.8844007858546169, 0.8845750812113592, 0.8853488189594286, 0.8841763535448738
+# VITB_Vote with duplicate=False and noisy label from the authors: 0.8555575879519541, 0.8559358354252128, 0.8562881562881562, 0.8545943304007819, 0.8549954170485793
 
 cfg = Config.fromfile(config_pth)
 cfg.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -45,6 +48,8 @@ dataset_raw = Cifar10_noisy(cfg)
 train_indices, val_indices = train_test_split(np.arange(len(dataset_raw)),test_size=0.2)
 train_pretrain_indices, train_baseline_indices = train_test_split(train_indices,test_size=0.5)
 val_indices, test_indices = train_test_split(val_indices,test_size=0.5)
+
+sampler = CIFAR_Sampler(test_indices)
 
 print("Step 2: Extract Embedding")
 """
@@ -62,7 +67,8 @@ else: # VIT-H
 
 # load embedding
 data_path = lambda x: cfg.save_path + f'embedded_{cfg.dataset_type}_{x}.pt'
-dataset, _ = load_embedding(pre_processor.save_ckpt_idx, data_path, duplicate=True)
+# Duplicate should be false unless we have a representation of dataset that was not well extracted (e.g., Jigsaw or Anthropic Read-Team data in the SimiFeat paper)
+dataset, _ = load_embedding(pre_processor.save_ckpt_idx, data_path, duplicate=args.duplicate) 
 
 print("Step 3: Generate & Save Diagnose Report")
 
@@ -74,6 +80,7 @@ detector.detect()
 # Save report
 report_path = cfg.save_path + f'{cfg.dataset_type}_report.pt'
 torch.save(report, report_path)
+print(report.diagnose) # Printing out noise transition matrix
 
 label_error = np.array(report.detection['label_error'])
 idxs  = label_error[:, 0].astype(int) # indexes of the noisy labels
