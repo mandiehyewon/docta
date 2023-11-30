@@ -2,6 +2,7 @@ from PIL import Image
 import numpy as np
 
 import torch
+from torch.utils.data import Sampler
 from torchvision.datasets import CIFAR10
 import torchvision.transforms as transforms
 
@@ -20,7 +21,13 @@ class CIFAR_Sampler(Sampler):
 
 
 class Cifar10_noisy(CIFAR10):
-    
+
+    generic_transform = transform = transforms.Compose(
+    [
+        transforms.ToTensor(),
+        transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
+    ])
+
     train_transform = transforms.Compose([
         transforms.RandomCrop(32, padding=4),
         transforms.RandomHorizontalFlip(),
@@ -34,17 +41,20 @@ class Cifar10_noisy(CIFAR10):
     ])
 
     def __init__(self, cfg, train = True, preprocess = None) -> None:
-        if preprocess is None:
-            preprocess = self.train_transform if train else self.test_transform
-        super(Cifar10_noisy, self).__init__(cfg.data_root, train=train, transform=preprocess,
-                                      target_transform=None, download=True)
+        if cfg.data_preproc is not None:
+            super(Cifar10_noisy, self).__init__(cfg.data_root, train=train, transform=self.generic_transform,
+                                        target_transform=None, download=True)
+        else:
+            if preprocess is None:
+                preprocess = self.train_transform if train else self.test_transform
+            super(Cifar10_noisy, self).__init__(cfg.data_root, train=train, transform=preprocess,
+                                        target_transform=None, download=True)
         self.cfg = cfg
         if train:
             self.load_label()
         else:
             self.label = self.targets
         self.feature = self.data
-
     
     def load_label(self):
         if self.cfg.label_path is None:

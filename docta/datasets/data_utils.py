@@ -21,8 +21,9 @@ def load_label(label_path, clean_label = None, key = None, clean_key = None):
 
     if isinstance(noise_label, dict):
         if clean_key in noise_label.keys() and clean_label is not None: # sanity check
-            clean_label = noise_label['clean_label']
+            clean_label = noise_label[clean_key] #'clean_label'
             assert torch.sum(torch.tensor(clean_label) - clean_label) == 0  
+        
         return noise_label[key].reshape(-1)
     else:
         return noise_label.reshape(-1)

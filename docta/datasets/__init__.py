@@ -1,5 +1,5 @@
 # different dataset builder
-from .cifar import Cifar10_noisy, Cifar100_noisy, Cifar10_clean, Cifar100_clean, Cifar10N, Cifar100N
+from .cifar import Cifar10_noisy, Cifar100_noisy, Cifar10_clean, Cifar100_clean, Cifar10N, Cifar100N, CIFAR_Sampler
 from .hh_rlhf import HH_RLHF
 from .customize import CustomizedDataset
 from .customize_img_folder import Customize_Image_Folder
