@@ -54,14 +54,13 @@ class DetectLabel(Diagnose):
         for epoch in tqdm(range(num_epoch)):
             if self.cfg.details:
                 print(f'Epoch {epoch}. Time elapsed: {time.time() - time0} s')
-            sel_noisy, sel_idx, suggest_label = simi_feat_batch(self.cfg, self.dataset)
+            sel_noisy, sel_idx, suggest_label = simi_feat_batch(self.cfg, self.dataset) # corrupt label index, raw index, suggested true label
             sel_noisy_rec[epoch][np.asarray(sel_noisy)] = 1
             sel_times_rec[np.asarray(sel_idx)] += 1
             suggest_label_rec[np.asarray(sel_noisy), suggest_label] += 1
         
         noisy_avg = (np.sum(sel_noisy_rec, 0) + 1) / (sel_times_rec + 2)
         
-        import ipdb; ipdb.set_trace()
         # sel_clean_summary = np.round(1.0 - noisy_avg).astype(bool)
         sel_noisy_summary = np.round(noisy_avg).astype(bool) # predicted noisy labels (rounded probability)
         num_label_errors = np.sum(sel_noisy_summary) # total number of noisy labels
@@ -77,6 +76,7 @@ class DetectLabel(Diagnose):
 
         suggest_matrix[range(len(suggest_matrix)), np.array(self.dataset.label)] = -1
         curation = dict(
+            # list of [index, suggested label, probability]
             label_curation = [[i, np.argmax(suggest_matrix[i]), suggest_matrix[i][np.argmax(suggest_matrix[i])] * noisy_avg[i]] for i in idx]
         )
         self.report.update(detection=detection, curation=curation)

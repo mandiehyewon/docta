@@ -41,10 +41,10 @@ class Cifar10_noisy(CIFAR10):
     ])
 
     def __init__(self, cfg, train = True, preprocess = None) -> None:
-        if cfg.data_preproc is not None:
+        if cfg.data_preproc is not None: # when data_preproc is 'generic'
             super(Cifar10_noisy, self).__init__(cfg.data_root, train=train, transform=self.generic_transform,
                                         target_transform=None, download=True)
-        else:
+        else: # when reproducing SimiFeat result
             if preprocess is None:
                 preprocess = self.train_transform if train else self.test_transform
             super(Cifar10_noisy, self).__init__(cfg.data_root, train=train, transform=preprocess,
@@ -163,6 +163,13 @@ class Cifar100_noisy(Cifar10_noisy):
         'key': 'fine_label_names',
         'md5': '7973b15100ade9c7d40fb424638fde48',
     }
+    
+    generic_transform = transform = transforms.Compose(
+    [
+        transforms.ToTensor(),
+        transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
+    ])
+
     train_transform = transforms.Compose([
     transforms.RandomCrop(32, padding=4),
     transforms.RandomHorizontalFlip(),

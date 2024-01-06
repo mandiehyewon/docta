@@ -7,7 +7,7 @@ from sklearn.model_selection import train_test_split
 import torch
 
 from docta.utils.config import Config
-from docta.datasets import Cifar10_noisy
+from docta.datasets import Cifar100_noisy
 from docta.core.preprocess import Preprocess
 from docta.datasets.data_utils import load_embedding
 from docta.apis import DetectLabel
@@ -15,10 +15,10 @@ from docta.core.report import Report
 from docta.models import load
 
 '''
-CUDA_VISIBLE_DEVICES=1 python docta_cifar10.py --nll
+CUDA_VISIBLE_DEVICES=1 python docta_cifar100.py --nll
 '''
 
-parser = argparse.ArgumentParser(description='PyTorch CIFAR10 Training')
+parser = argparse.ArgumentParser(description='PyTorch CIFAR100 Training')
 parser.add_argument('--model', default='VITB', type=str, help='embedding model')
 parser.add_argument('--method', default='Rank', type=str, help='SimiFeat method', choices=['Rank', 'Vote'])
 parser.add_argument('--data', default=None, type=str, help='dataset, None uses the preprocessing in the Docta repo')
@@ -32,16 +32,8 @@ Note:
 1. Please set data_root in the config file appropriately.
 2. Download the data to data_root beforing running
 """
-config_pth = "./config/cifar10_{}_{}.py".format(args.model, args.method)
+config_pth = "./config/cifar100_{}_{}.py".format(args.model, args.method)
 print('Using data {} and config: '.format(args.data)+config_pth)
-# VITH_Rank: F1 0.7959854232630384, 0.79648871372268, 0.7937296197684506, 0.7958775205377148, 0.7987601335240821
-# VITH_Vote: F1 0.9215372087525283, 0.9207159778889181, 0.9214293232291338, 0.9217418744083307, 0.9199052132701421
-# VITB_Rank F1 0.7616164673830785, 0.7622826679590476, 0.7596296858400364, 0.762345959366579, 0.7621413639531008
-# VITB_Rank with duplicate=False and noisy label from the authors:0.859402908905333, 0.8580739983385519, 0.8561560601215221, 0.859571748162352, 0.8597868402578339
-# ^ on our test set: 0.8749706043740693, 0.8760930281120306, 0.875248145439348, 0.8760304706250651, 0.8750098036652637
-# VITB_Vote F1 0.8858046472725372, 0.8844007858546169, 0.8845750812113592, 0.8853488189594286, 0.8841763535448738
-# VITB_Vote with duplicate=False and noisy label from the authors: 0.8555575879519541, 0.8559358354252128, 0.8562881562881562, 0.8545943304007819, 0.8549954170485793
-# ^ on our test set: 0.886784577659519, 0.8864644777365975, 0.8872427554187642, 0.8864419162926627, 0.8875733472421438
 
 cfg = Config.fromfile(config_pth)
 cfg.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -53,7 +45,7 @@ if args.data == 'simifeat': # when reproducing SimiFeat result, not using our tr
     cfg.clean_label_key = 'clean_label_train'
     cfg.data_preproc = None
 
-dataset_raw = Cifar10_noisy(cfg)
+dataset_raw = Cifar100_noisy(cfg)
 
 train_indices, val_indices = train_test_split(np.arange(len(dataset_raw)),test_size=0.2)
 train_pretrain_indices, train_baseline_indices = train_test_split(train_indices,test_size=0.5)

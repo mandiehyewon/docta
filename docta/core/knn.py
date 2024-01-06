@@ -17,7 +17,9 @@ def count_knn_distribution(cfg, dataset, sample, k=10, norm='l2'):
 
     time1 = time.time()
     num_classes = cfg.num_classes
-    knn_labels, values = get_consensus_patterns(dataset, sample, k=k)
+
+    # knn_labels is the noisy labels of the k-NNs, and values is the cosine distance
+    knn_labels, values = get_consensus_patterns(dataset, sample, k=k)  # top k noisy labels (k-NNs), its cosine similarity
     # make the self-value less dominant (intuitive)
     values[:, 0] = 2.0 * values[:, 1] - values[:, 2]
 
@@ -71,12 +73,15 @@ def simi_feat_batch(cfg, dataset):
     if cfg.hoc_cfg is not None and cfg.hoc_cfg.sample_size:
         sample_size = np.min((cfg.hoc_cfg.sample_size, int(len(dataset)*0.9)))
 
+    # they take 90% of the data 
+    # (they are calling this function several times and averaging the noisy detected labels so this is fine)
     idx = np.random.choice(range(len(dataset)), sample_size, replace=False)
 
+    # knn_labels_cnt is the emperical probability of the classes (\hat{y}): size (samples, classes)
     knn_labels_cnt = count_knn_distribution(
         cfg, dataset=dataset, sample=idx, k=cfg.detect_cfg.k, norm='l2')
 
-    score = get_score(knn_labels_cnt, torch.tensor(dataset.label[idx]), cfg)
+    score = get_score(knn_labels_cnt, torch.tensor(dataset.label[idx]), cfg) # negative log-likelihood loss of the emporeical probability of the classes
     score_np = score.cpu().numpy()
     sel_idx = dataset.index[idx]  # raw index
 
@@ -84,9 +89,9 @@ def simi_feat_batch(cfg, dataset):
     if cfg.detect_cfg.method == 'mv':
         # test majority voting
         # print(f'Use MV')
-        sel_true_false = label_pred != dataset.label[idx]
-        sel_noisy = (sel_idx[sel_true_false]).tolist()
-        suggest_label = label_pred[sel_true_false].tolist()
+        sel_true_false = label_pred != dataset.label[idx] # v_n
+        sel_noisy = (sel_idx[sel_true_false]).tolist() # indexes of the samples we classify as corrupt
+        suggest_label = label_pred[sel_true_false].tolist() # suggested true label
     elif cfg.detect_cfg.method == 'rank':
         # print(f'Use ranking')
 
@@ -110,5 +115,5 @@ def simi_feat_batch(cfg, dataset):
     else:
         raise NameError('Undefined method')
 
-    # raw index, raw index, suggested true label
+    # corrupt label index, raw index, suggested true label
     return sel_noisy, sel_idx, suggest_label

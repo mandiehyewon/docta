@@ -33,7 +33,7 @@ print_freq = 390
 details = False
 
 train_cfg = dict(
-    shuffle = True,
+    shuffle = False,
     batch_size = 128,
     num_workers = 1,
 )
