@@ -36,9 +36,9 @@ class DetectLabel(Diagnose):
         # Paper: https://proceedings.mlr.press/v162/zhu22a/zhu22a.pdf
         print(f'Detecting label errors with simifeat.')
         num_epoch = self.cfg.detect_cfg.num_epoch
-        sel_noisy_rec = np.zeros((num_epoch, len(self.dataset)))
-        sel_times_rec = np.zeros(len(self.dataset))
-        suggest_label_rec = np.zeros((len(self.dataset), self.cfg.num_classes))
+        sel_noisy_rec = np.zeros((num_epoch, len(self.dataset))) # corrput label per each epoch
+        sel_times_rec = np.zeros(len(self.dataset)) # number of times that each instance (index) is selected
+        suggest_label_rec = np.zeros((len(self.dataset), self.cfg.num_classes)) # suggested label
 
         if self.cfg.detect_cfg.method == 'rank': # estimate T with hoc (by default) 
             if self.report.diagnose['T'] is None:
@@ -60,9 +60,11 @@ class DetectLabel(Diagnose):
             suggest_label_rec[np.asarray(sel_noisy), suggest_label] += 1
         
         noisy_avg = (np.sum(sel_noisy_rec, 0) + 1) / (sel_times_rec + 2)
+        
+        import ipdb; ipdb.set_trace()
         # sel_clean_summary = np.round(1.0 - noisy_avg).astype(bool)
-        sel_noisy_summary = np.round(noisy_avg).astype(bool)
-        num_label_errors = np.sum(sel_noisy_summary)
+        sel_noisy_summary = np.round(noisy_avg).astype(bool) # predicted noisy labels (rounded probability)
+        num_label_errors = np.sum(sel_noisy_summary) # total number of noisy labels
         print(f'[SimiFeat] We find {num_label_errors} corrupted instances from {sel_noisy_summary.shape[0]} instances')
         idx = np.argsort(noisy_avg)[-num_label_errors:][::-1] # raw index
         suggest_matrix = (suggest_label_rec + 1) / (np.sum(suggest_label_rec, 1).reshape(-1,1) + self.cfg.num_classes) # #samples * #classes

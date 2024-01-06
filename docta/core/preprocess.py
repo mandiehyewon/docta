@@ -20,13 +20,12 @@ def build_dataloader(cfg_loader, dataset):
 
 def save_extracted_dataset(cfg, dataset_embedding, dataset_label, dataset_idx, save_cnt):
     dataset_label = np.concatenate(dataset_label)
-    dataset_label = dataset_label[:, cfg.train_label_sel] if len(dataset_label.shape) > 1 else dataset_label
-
     if len(dataset_label.shape) > 1:
         true_label = dataset_label[:, 0]
     else:
         true_label = None
 
+    dataset_label = dataset_label[:, cfg.train_label_sel] if len(dataset_label.shape) > 1 else dataset_label
     dataset = CustomizedDataset(feature=np.concatenate(dataset_embedding), label=dataset_label, true_label=true_label, index=np.concatenate(dataset_idx))
 
     os.makedirs(cfg.save_path, exist_ok=True)
@@ -87,17 +86,13 @@ def extract_embedding_batch(cfg, encoder, batch_feature):
     return embedding
 
 
-
-
-
-
 class Preprocess:
-
-    def __init__(self, cfg, dataset, test_dataset=None) -> None:
+    def __init__(self, cfg, dataset, test_dataset=None, data_indices=None) -> None:
         self.cfg = cfg
         self.dataset = dataset
         self.test_dataset = test_dataset
-    
+        self.data_indices = data_indices
+
     def get_encoder(self, model_embedding=None, preprocess=None):
         if model_embedding is not None:
             model_embedding.to(self.cfg.device)
@@ -140,7 +135,7 @@ class Preprocess:
         encoder, preprocess = self.get_encoder(model_embedding, preprocess)
              
         dataset_list = []
-        dataset_list += [CustomizedDataset(feature=self.dataset.feature, label=self.dataset.label, preprocess=preprocess)]
+        dataset_list += [CustomizedDataset(feature=self.dataset.feature[self.data_indices], label=self.dataset.label[self.data_indices], preprocess=preprocess)]
         if self.test_dataset is not None:
             dataset_list += [CustomizedDataset(feature=self.test_dataset.feature, label=self.test_dataset.label, preprocess=preprocess)]
         self.save_ckpt_idx = extract_embedding(self.cfg, encoder, dataset_list) # idx of different saved files

@@ -4,6 +4,7 @@ dataset_type = 'CIFAR'
 modality = 'image' # image, text, tabular
 num_classes = 10
 data_root = './data/cifar/'
+data_preproc = 'generic'
 label_path = './data/cifar/CIFAR-10_human.pt'
 noisy_label_key = 'worse_label'
 clean_label_key = 'clean_label'

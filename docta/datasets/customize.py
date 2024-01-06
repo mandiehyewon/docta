@@ -5,14 +5,13 @@ class CustomizedDataset(torch.utils.data.Dataset):
         self.feature = feature
         self.index = range(len(feature)) if index is None else index
         self.label = [None] * len(feature) if label is None else label
-        self.true_label = None if true_label is None else true_label
-        self.preprocess = preprocess 
+        self.true_label = true_label
+        self.preprocess = preprocess
+
     def update(self, dataset_new):
         self.feature = np.concatenate((self.feature, dataset_new.feature), axis = 0)
         self.index = np.concatenate((self.index, dataset_new.index), axis = 0)
         self.label = np.concatenate((self.label, dataset_new.label), axis = 0)
-
-
 
     def __getitem__(self, index):
         idx = self.index[index]

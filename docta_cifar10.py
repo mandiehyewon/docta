@@ -7,7 +7,7 @@ from sklearn.model_selection import train_test_split
 import torch
 
 from docta.utils.config import Config
-from docta.datasets import Cifar10_noisy, CIFAR_Sampler
+from docta.datasets import Cifar10_noisy
 from docta.core.preprocess import Preprocess
 from docta.datasets.data_utils import load_embedding
 from docta.apis import DetectLabel
@@ -28,7 +28,7 @@ args = parser.parse_args()
 
 print("Step 1: Load Dataset")
 """
-Note: 
+Note:
 1. Please set data_root in the config file appropriately.
 2. Download the data to data_root beforing running
 """
@@ -57,8 +57,7 @@ dataset_raw = Cifar10_noisy(cfg)
 train_indices, val_indices = train_test_split(np.arange(len(dataset_raw)),test_size=0.2)
 train_pretrain_indices, train_baseline_indices = train_test_split(train_indices,test_size=0.5)
 val_indices, test_indices = train_test_split(val_indices,test_size=0.5)
-
-sampler = CIFAR_Sampler(test_indices)
+data_indices = np.append(train_baseline_indices, test_indices)
 
 print("Step 2: Extract Embedding")
 """
@@ -66,7 +65,7 @@ Note:
 1. Strongly recommend to use a GPU to encode features.
 2. The embedding will be automatically saved by running pre_processor.encode_feature()
 """
-pre_processor = Preprocess(cfg, dataset_raw)
+pre_processor = Preprocess(cfg, dataset_raw, data_indices=data_indices)
 
 if cfg.embedding_model == 'hf-hub:laion/openai/clip-vit-base-patch32':
     model, preprocess = load("ViT-B/32", jit=False)
@@ -76,8 +75,9 @@ else: # VIT-H
 
 # load embedding
 data_path = lambda x: cfg.save_path + f'embedded_{cfg.dataset_type}_{x}.pt'
+
 # Duplicate should be false unless we have a representation of dataset that was not well extracted (e.g., Jigsaw or Anthropic Read-Team data in the SimiFeat paper)
-dataset, _ = load_embedding(pre_processor.save_ckpt_idx, data_path, duplicate=args.duplicate) 
+dataset, _ = load_embedding(pre_processor.save_ckpt_idx,data_path, duplicate=args.duplicate) 
 
 print("Step 3: Generate & Save Diagnose Report")
 
@@ -97,8 +97,9 @@ noisy_prob  = label_error[:, 1] # noisy label probability (averaged over #epoch 
 sel_noisy_summary = np.round(noisy_prob).astype(bool)
 print(f'[SimiFeat] We find {np.sum(sel_noisy_summary)} corrupted instances from {sel_noisy_summary.shape[0]} instances')
 
-y_pred = np.array([i in idxs for i in range(50_000)])
-y_true = dataset_raw.label[:, 0] != dataset_raw.label[:, 1]
+y_pred = np.array([i in idxs for i in range(len(dataset)-len(test_indices), len(dataset))])
+y_true = dataset_raw.label[test_indices, 0] != dataset_raw.label[test_indices, 1]
 
 print('predicted noisy label: {}, actual noisy label: {}'.format(y_pred.sum(), y_true.sum()))
 print('F1: {}'.format(f1_score(y_true, y_pred)))
+import ipdb; ipdb.set_trace()

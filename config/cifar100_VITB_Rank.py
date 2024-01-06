@@ -32,7 +32,7 @@ print_freq = 390
 details = False
 
 train_cfg = dict(
-    shuffle = True,
+    shuffle = False,
     batch_size = 128,
     num_workers = 1,
 )
@@ -69,5 +69,6 @@ detect_cfg = dict(
     sample_size = 35000,
     k = 10,
     name = 'simifeat',
+    data_preproc = 'generic',
     method = 'rank'
 )

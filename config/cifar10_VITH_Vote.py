@@ -69,5 +69,6 @@ detect_cfg = dict(
     sample_size = 35000,
     k = 10,
     name = 'simifeat',
+    data_preproc = 'generic',
     method = 'mv'
 )
