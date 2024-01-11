@@ -1,4 +1,5 @@
 import os
+import random
 import torch
 import numpy as np
 import pandas as pd
@@ -8,40 +9,54 @@ from torch.utils.data import Dataset
 from pathlib import Path
 from torchvision import transforms
 
-class NoisyCombinedDataset(Dataset):
-    def __init__(self, dataset, noise_labels, transform=None):
-        self.original_dataset = dataset
-        self.transform = transform
-        self.noise_labels = noise_labels
 
-    def __getitem__(self, index):
-        x, y = self.original_dataset[index]
-        y_noise = self.noise_labels[index]
-        if self.transform is not None:
-            x = self.transform(x)
-        return x, y, y_noise
-
-    def __len__(self):
-        return len(self.noise_labels)
-
-class NoisyCombinedMultiModalDataset(Dataset):
-    def __init__(self, dataset, noise_labels, transform=None):
-        self.original_dataset = dataset
-        self.transform = transform
-        self.noise_labels = noise_labels
-
-    def __getitem__(self, index):
-        x1, x2, y = self.original_dataset[index]
-        y_noise = self.noise_labels[index]
-        if self.transform is not None:
-            x = self.transform(x)
-        return x1, x2, y, y_noise
-
-    def __len__(self):
-        return len(self.noise_labels)
-
+mimiccxr_labels = [
+    "No finding",
+    "Clinical finding"
+]
 
 ImageFile.LOAD_TRUNCATED_IMAGES = True
+
+def get_label_flips(dataset, percent_flips, text_labels, flip_type="random"):
+
+    print(len(text_labels))
+    if flip_type == "random":
+        random_flip_dict = {}
+        all_label_values = list(set(text_labels))
+        for label in all_label_values:
+            not_label = list(set(text_labels) - set([label]))
+            x = random.sample(not_label, 1)
+            random_flip_dict[label] = x[0]
+        flip_dict = random_flip_dict
+        
+    elif flip_type == "pseudorandom":
+        random_flip_dict = {}
+        all_label_values = list(set(text_labels))
+        label_set = list(mimiccxr_labels)
+
+        for label in all_label_values:
+            curr_label_index = label_set.index(label)
+            new_index = curr_label_index + 1
+            if (curr_label_index + 1) >= len(label_set):
+                new_index-=len(label_set)
+            random_flip_dict[label] = label_set[new_index]
+        flip_dict = random_flip_dict
+        
+
+    flip_labels = []
+    flipped_labels = []
+    n_labels = len(text_labels)
+    flip_labels = np.zeros((n_labels,1)).squeeze()
+    flip_idx = random.sample(list(np.arange(n_labels)), int(percent_flips*n_labels))
+    flip_labels[flip_idx]=1
+
+    for i,curr_label in tqdm(enumerate(text_labels)):
+        if flip_labels[i]==1 and curr_label in flip_dict:
+            curr_label=flip_dict[curr_label]
+        flipped_labels.append(curr_label)
+    assert len(flipped_labels)==n_labels
+    return np.array(flipped_labels)
+
 
 class BaseDataset:
     N_STEPS = 5001           # Default, subclasses may override
@@ -90,6 +105,8 @@ class BaseDataset:
         i = self.idx[index]
         x = self.transform(self.x[i])            
         y = torch.tensor(self.y[i], dtype=torch.long)
+        self.targets = y
+        
         # y = np.stack((self.targets, self.noisy_label)).transpose()
 
         if self.multimodal:
@@ -100,73 +117,7 @@ class BaseDataset:
 
     def __len__(self):
         return len(self.idx)
-
-
-class ImageTextDataset(Dataset):
-    """Image text dataset."""
-
-    def __init__(self, data, transform=None):
-        """
-        Arguments:
-            csv_file (string): Path to the csv file with annotations.
-            root_dir (string): Directory with all the images.
-            transform (callable, optional): Optional transform to be applied
-                on a sample.
-        """
-        self.data = data
-        self.img_transform = transform
-        
-
-    def __len__(self):
-        return len(self.data)
-
-    def __getitem__(self, idx):
-        if torch.is_tensor(idx):
-            idx = idx.tolist()
-        sample_img=self.data[idx][0]
-        sample_img = sample_img.resize((224,224), Image.LANCZOS)
-        sample_text=self.data[idx][1]
-        sample_label=self.data[idx][2]
-
-        if self.transform:
-            sample = self.img_transform(sample_img)
-
-        return sample, sample_text, sample_label
-
-class ImageDataset(Dataset):
-    """Image dataset."""
-
-    def __init__(self, data, label_flips=None,transform=None):
-        """
-        Arguments:
-            csv_file (string): Path to the csv file with annotations.
-            root_dir (string): Directory with all the images.
-            transform (callable, optional): Optional transform to be applied
-                on a sample.
-        """
-        self.data = data
-        self.transform = transform
-        self.label_flips=label_flips
-        
-
-    def __len__(self):
-        return len(self.data)
-
-    def __getitem__(self, idx):
-        if torch.is_tensor(idx):
-            idx = idx.tolist()
-        sample_img=self.data[idx][0]
-        sample_img = sample_img.resize((224,224), Image.LANCZOS)
-        sample_label=self.data[idx][1]
-
-        if self.transform:
-            sample = self.transform(sample_img)
-
-        return sample, sample_label
     
-    
-
-
 class CXRDataset(BaseDataset):
     N_STEPS = 20001
     CHECKPOINT_FREQ = 1000
@@ -195,6 +146,11 @@ class CXRDataset(BaseDataset):
         self.data_root = data_path
         super().__init__('/', split, split_path, label_file, metadata, transform, multimodal)
 
+    def load_label(self):
+        text_labels = mimiccxr_labels[np.array(self.targets, dtype=np.int8)]
+        self.noisy_label = get_label_flips(name= 'mimiccxr', percent_flips=0.20, text_labels=text_labels, flip_type='pseudorandom')
+        self.label = np.stack((self.targets, self.noisy_label)).transpose()
+
     def transform(self, x):
         if self.downsample:
             reduced_img_path = list(Path(x).parts)
@@ -221,15 +177,5 @@ class CXRDataset(BaseDataset):
             img_path = os.path.join(self.data_root, 'MIMIC-CXR-JPG', img_path)
             x = img_path
             img = Image.open(x).convert("RGB").resize((224, 224))
-        
-        
+
         return self.data_transform(img)
-
-
-   
-
-
-
-
-
-

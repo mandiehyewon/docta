@@ -9,17 +9,6 @@ import torchvision.transforms as transforms
 from .data_utils import load_label, noisify_general, get_T_true_from_data
 
 
-class CIFAR_Sampler(Sampler):
-    def __init__(self, idxs):
-        self.idxs = idxs
-
-    def __iter__(self):
-        return (self.indices[i] for i in torch.nonzero(self.mask))
-
-    def __len__(self):
-        return len(self.mask)
-
-
 class Cifar10_noisy(CIFAR10):
 
     generic_transform = transform = transforms.Compose(

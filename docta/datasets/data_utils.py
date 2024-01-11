@@ -3,13 +3,15 @@ import os.path
 import copy
 import hashlib
 import errno
-import numpy as np
-from numpy.testing import assert_array_almost_equal
-import torch
-import torch.nn.functional as F 
-import pandas as pd
 import collections
 from typing import Callable
+
+import pandas as pd
+import numpy as np
+from numpy.testing import assert_array_almost_equal
+
+import torch
+import torch.nn.functional as F 
 
 
 def load_label(label_path, clean_label = None, key = None, clean_key = None):
@@ -193,8 +195,3 @@ def load_dataset(cfg, data_converter, data_loader):
             torch.save({'feature': feature.tolist()[i*total_len:(i+1)*total_len], 'label': label.tolist()[i*total_len:(i+1)*total_len]}, dataset_path[:-3] + str(i) + dataset_path[-3:])
             print(f'Saved preprocessed dataset to {dataset_path[:-3] + str(i) + dataset_path[-3:]}')
     return np.asarray(feature),np.asarray(label), index
-
-# if __name__ == "__main__":
-#     data = load_csv('./data/jigsaw/train.csv')
-#     pass
-

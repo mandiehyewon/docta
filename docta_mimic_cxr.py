@@ -18,7 +18,7 @@ from docta.models import load
 CUDA_VISIBLE_DEVICES=1 python docta_mimic_cxr.py --nll
 '''
 
-parser = argparse.ArgumentParser(description='PyTorch CIFAR100 Training')
+parser = argparse.ArgumentParser(description='PyTorch MIMIC CXR Training')
 parser.add_argument('--model', default='VITB', type=str, help='embedding model')
 parser.add_argument('--method', default='Rank', type=str, help='SimiFeat method', choices=['Rank', 'Vote'])
 parser.add_argument('--data', default=None, type=str, help='dataset, None uses the preprocessing in the Docta repo')
@@ -39,7 +39,8 @@ cfg = Config.fromfile(config_pth)
 cfg.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 cfg.nll = args.nll
 
-dataset_raw = CXRDataset(cfg)
+dataset_raw = CXRDataset(data_path='/data/healthy-ml/gobi1/data/', 
+                        split='tr', hparams=None, downsample=True)
 
 train_indices, val_indices = train_test_split(np.arange(len(dataset_raw)),test_size=0.2)
 train_pretrain_indices, train_baseline_indices = train_test_split(train_indices,test_size=0.5)
